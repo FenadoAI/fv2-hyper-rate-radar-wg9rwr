@@ -93,7 +93,7 @@ const Home = () => {
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-white">Hyperliquid Funding Tracker</h1>
-                <p className="text-purple-200 text-sm mt-1">Top 10 highest funding rate coins (7-day average)</p>
+                <p className="text-purple-200 text-sm mt-1">Top 10 highest annualized funding rate coins (7-day average)</p>
               </div>
             </div>
             <button
@@ -135,7 +135,7 @@ const Home = () => {
               <DollarSign className="w-5 h-5 text-yellow-300" />
               <div>
                 <p className="text-purple-200 text-sm">Filter Criteria</p>
-                <p className="text-white font-semibold text-sm">OI &gt; $10M OR Vol &gt; $100M</p>
+                <p className="text-white font-semibold text-sm">OI &gt; $10M AND Vol &gt; $10M</p>
               </div>
             </div>
           </div>
@@ -164,7 +164,7 @@ const Home = () => {
                   <tr>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-purple-200">Rank</th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-purple-200">Coin</th>
-                    <th className="px-6 py-4 text-right text-sm font-semibold text-purple-200">Avg Funding Rate (7d)</th>
+                    <th className="px-6 py-4 text-right text-sm font-semibold text-purple-200">Annualized FR (7d)</th>
                     <th className="px-6 py-4 text-right text-sm font-semibold text-purple-200">Current FR</th>
                     <th className="px-6 py-4 text-right text-sm font-semibold text-purple-200">Open Interest</th>
                     <th className="px-6 py-4 text-right text-sm font-semibold text-purple-200">Daily Volume</th>
@@ -192,9 +192,9 @@ const Home = () => {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <span className={`font-bold text-lg ${
-                          coin.avg_funding_rate_pct > 0 ? 'text-green-400' : 'text-red-400'
+                          coin.annualized_funding_rate_pct > 0 ? 'text-green-400' : 'text-red-400'
                         }`}>
-                          {formatPercentage(coin.avg_funding_rate_pct)}
+                          {formatPercentage(coin.annualized_funding_rate_pct)}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
@@ -225,9 +225,9 @@ const Home = () => {
         <div className="mt-8 bg-white/5 backdrop-blur-lg rounded-xl p-6 border border-white/10">
           <h3 className="text-white font-semibold mb-3">About This Tracker</h3>
           <div className="text-purple-200 text-sm space-y-2">
-            <p>• This tracker displays the top 10 cryptocurrencies with the highest average funding rates over the last 7 days from Hyperliquid perpetual markets.</p>
-            <p>• Only coins with Open Interest &gt; $10M OR Daily Volume &gt; $100M are included.</p>
-            <p>• Funding rates represent the periodic payment between long and short positions. Positive rates indicate longs paying shorts.</p>
+            <p>• This tracker displays the top 10 cryptocurrencies with the highest annualized funding rates (7-day average) from Hyperliquid perpetual markets.</p>
+            <p>• Only coins with Open Interest &gt; $10M AND Daily Volume &gt; $10M are included.</p>
+            <p>• Funding rates are annualized (funding occurs every 8 hours, so rate × 3 × 365). Positive rates indicate longs paying shorts.</p>
             <p>• Data updates automatically every hour. You can manually refresh using the button above.</p>
           </div>
         </div>

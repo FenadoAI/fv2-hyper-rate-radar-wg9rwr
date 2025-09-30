@@ -72,6 +72,8 @@ class HyperliquidCoin(BaseModel):
     coin: str
     avg_funding_rate: float
     avg_funding_rate_pct: float
+    annualized_funding_rate: float
+    annualized_funding_rate_pct: float
     open_interest_usd: float
     daily_volume_usd: float
     mark_price: float

@@ -1,5 +1,34 @@
 # FENADO Worklog
 
+## 2025-09-30 - Update: Annualized Funding Rate & Volume Filter
+
+### Changes Made:
+1. **Annualized Funding Rate Display:**
+   - Changed funding rate display from per-period to annualized format
+   - Formula: annualized_rate = avg_rate × 3 × 365 (funding occurs every 8 hours)
+   - Updated backend to calculate and return `annualized_funding_rate` and `annualized_funding_rate_pct`
+   - Updated frontend to display annualized rates in main table
+   - Sorting now based on annualized rate (highest first)
+
+2. **Volume Filter Update:**
+   - Changed filter logic from OR to AND condition
+   - Old: OI > $10M OR Daily Volume > $100M
+   - New: OI > $10M AND Daily Volume > $10M
+   - This ensures only coins with significant volume (>$10M daily) are shown
+   - Removes low-volume coins from the tracker
+
+3. **Files Modified:**
+   - `backend/hyperliquid_service.py`: Added annualization logic, updated filter condition
+   - `backend/server.py`: Added annualized fields to HyperliquidCoin model
+   - `frontend/src/App.js`: Updated display to show annualized rates, updated filter text
+
+4. **Services Restarted:**
+   - Backend rebuilt and restarted successfully
+   - Frontend built and restarted successfully
+   - All services operational
+
+---
+
 ## 2025-09-30 - Hyperliquid Funding Rate Tracker
 
 ### Task: Build website showing top 10 highest average funding rate coins

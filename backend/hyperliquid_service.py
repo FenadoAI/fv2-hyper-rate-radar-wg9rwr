@@ -66,21 +66,21 @@ class HyperliquidService:
     async def get_top_funding_rate_coins(
         self,
         min_open_interest: float = 10_000_000,
-        min_daily_volume: float = 100_000_000,
+        min_daily_volume: float = 10_000_000,
         days_back: int = 7,
         top_n: int = 10,
     ) -> List[Dict]:
         """
-        Get top N coins with highest average funding rate.
+        Get top N coins with highest average funding rate (annualized).
 
         Args:
             min_open_interest: Minimum open interest in USD (default 10M)
-            min_daily_volume: Minimum daily volume in USD (default 100M)
+            min_daily_volume: Minimum daily volume in USD (default 10M)
             days_back: Number of days to look back for funding rate (default 7)
             top_n: Number of top coins to return (default 10)
 
         Returns:
-            List of coin data sorted by average funding rate
+            List of coin data sorted by annualized funding rate
         """
         logger.info("Fetching Hyperliquid market data...")
 
@@ -115,8 +115,8 @@ class HyperliquidService:
                 open_interest_usd = open_interest * mark_price
                 daily_volume_usd = daily_volume
 
-                # Apply filters: OI > 10M OR daily volume > 100M
-                if open_interest_usd < min_open_interest and daily_volume_usd < min_daily_volume:
+                # Apply filters: OI > 10M AND daily volume > 10M
+                if open_interest_usd < min_open_interest or daily_volume_usd < min_daily_volume:
                     logger.debug(
                         f"Skipping {coin_name}: OI=${open_interest_usd:,.0f}, Vol=${daily_volume_usd:,.0f}"
                     )
@@ -136,10 +136,17 @@ class HyperliquidService:
                 # Calculate average funding rate
                 avg_funding_rate = self.calculate_average_funding_rate(funding_history)
 
+                # Annualize funding rate: Hyperliquid charges funding every 8 hours (3 times per day)
+                # So annualized rate = avg_rate * 3 * 365
+                annualized_funding_rate = avg_funding_rate * 3 * 365
+                annualized_funding_rate_pct = annualized_funding_rate * 100
+
                 eligible_coins.append({
                     "coin": coin_name,
                     "avg_funding_rate": avg_funding_rate,
-                    "avg_funding_rate_pct": avg_funding_rate * 100,  # Convert to percentage
+                    "avg_funding_rate_pct": avg_funding_rate * 100,  # Per-period percentage
+                    "annualized_funding_rate": annualized_funding_rate,
+                    "annualized_funding_rate_pct": annualized_funding_rate_pct,
                     "open_interest_usd": open_interest_usd,
                     "daily_volume_usd": daily_volume_usd,
                     "mark_price": mark_price,
@@ -148,15 +155,15 @@ class HyperliquidService:
                 })
 
                 logger.info(
-                    f"{coin_name}: Avg Funding Rate = {avg_funding_rate * 100:.4f}% ({len(funding_history)} data points)"
+                    f"{coin_name}: Avg Funding Rate = {avg_funding_rate * 100:.4f}% | Annualized = {annualized_funding_rate_pct:.2f}% ({len(funding_history)} data points)"
                 )
 
             except (ValueError, KeyError, TypeError) as e:
                 logger.error(f"Error processing {coin_name}: {e}")
                 continue
 
-        # Sort by average funding rate (highest first)
-        eligible_coins.sort(key=lambda x: x["avg_funding_rate"], reverse=True)
+        # Sort by annualized funding rate (highest first)
+        eligible_coins.sort(key=lambda x: x["annualized_funding_rate"], reverse=True)
 
         # Return top N
         top_coins = eligible_coins[:top_n]
