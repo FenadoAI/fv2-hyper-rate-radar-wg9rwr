@@ -1,13 +1,15 @@
 """FastAPI server exposing AI agent endpoints."""
 
+import asyncio
 import logging
 import os
 import uuid
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from dotenv import load_dotenv
 from fastapi import APIRouter, FastAPI, HTTPException, Request
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -15,6 +17,7 @@ from pydantic import BaseModel, Field
 from starlette.middleware.cors import CORSMiddleware
 
 from ai_agents.agents import AgentConfig, ChatAgent, SearchAgent
+from hyperliquid_service import HyperliquidService
 
 
 logging.basicConfig(
@@ -65,6 +68,25 @@ class SearchResponse(BaseModel):
     error: Optional[str] = None
 
 
+class HyperliquidCoin(BaseModel):
+    coin: str
+    avg_funding_rate: float
+    avg_funding_rate_pct: float
+    open_interest_usd: float
+    daily_volume_usd: float
+    mark_price: float
+    current_funding_rate: float
+    funding_data_points: int
+
+
+class HyperliquidResponse(BaseModel):
+    success: bool
+    coins: List[HyperliquidCoin]
+    last_updated: datetime
+    next_update: datetime
+    error: Optional[str] = None
+
+
 def _ensure_db(request: Request):
     try:
         return request.app.state.db
@@ -95,6 +117,29 @@ async def _get_or_create_agent(request: Request, agent_type: str):
     return cache[agent_type]
 
 
+async def update_hyperliquid_data(db):
+    """Background task to update Hyperliquid data."""
+    try:
+        logger.info("Starting Hyperliquid data update...")
+        service = HyperliquidService()
+        coins = await service.get_top_funding_rate_coins()
+
+        now = datetime.now(timezone.utc)
+        next_update = now + timedelta(hours=1)
+
+        # Store in MongoDB
+        await db.hyperliquid_top_coins.delete_many({})  # Clear old data
+        await db.hyperliquid_top_coins.insert_one({
+            "coins": coins,
+            "last_updated": now,
+            "next_update": next_update,
+        })
+
+        logger.info(f"Hyperliquid data updated successfully. {len(coins)} coins stored.")
+    except Exception as exc:
+        logger.exception("Error updating Hyperliquid data")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     load_dotenv(ROOT_DIR / ".env")
@@ -108,14 +153,34 @@ async def lifespan(app: FastAPI):
 
     client = AsyncIOMotorClient(mongo_url)
 
+    # Initialize scheduler
+    scheduler = AsyncIOScheduler()
+
     try:
         app.state.mongo_client = client
         app.state.db = client[db_name]
         app.state.agent_config = AgentConfig()
         app.state.agent_cache = {}
         logger.info("AI Agents API starting up")
+
+        # Initialize Hyperliquid data on startup
+        await update_hyperliquid_data(app.state.db)
+
+        # Schedule hourly updates
+        scheduler.add_job(
+            update_hyperliquid_data,
+            "interval",
+            hours=1,
+            args=[app.state.db],
+            id="hyperliquid_update",
+            replace_existing=True,
+        )
+        scheduler.start()
+        logger.info("Scheduled hourly Hyperliquid data updates")
+
         yield
     finally:
+        scheduler.shutdown()
         client.close()
         logger.info("AI Agents API shutdown complete")
 
@@ -234,6 +299,70 @@ async def get_agent_capabilities(request: Request):
     except Exception as exc:  # pragma: no cover - defensive
         logger.exception("Error getting capabilities")
         return {"success": False, "error": str(exc)}
+
+
+@api_router.get("/hyperliquid/top-coins", response_model=HyperliquidResponse)
+async def get_hyperliquid_top_coins(request: Request, force_refresh: bool = False):
+    """
+    Get top 10 coins with highest average funding rate from Hyperliquid.
+
+    Query Parameters:
+        force_refresh: If True, force refresh the data from API instead of using cache
+    """
+    db = _ensure_db(request)
+
+    try:
+        # Check if we need to refresh
+        cached_data = await db.hyperliquid_top_coins.find_one()
+
+        if force_refresh or not cached_data:
+            logger.info("Force refresh or no cached data, fetching from API...")
+            await update_hyperliquid_data(db)
+            cached_data = await db.hyperliquid_top_coins.find_one()
+
+        if not cached_data:
+            raise HTTPException(status_code=503, detail="Failed to fetch Hyperliquid data")
+
+        # Check if data is stale (older than 1 hour)
+        last_updated = cached_data["last_updated"]
+        if isinstance(last_updated, datetime) and last_updated.tzinfo is None:
+            last_updated = last_updated.replace(tzinfo=timezone.utc)
+
+        now = datetime.now(timezone.utc)
+
+        if (now - last_updated).total_seconds() > 3600:  # 1 hour
+            logger.info("Data is stale, refreshing...")
+            await update_hyperliquid_data(db)
+            cached_data = await db.hyperliquid_top_coins.find_one()
+
+        coins = [HyperliquidCoin(**coin) for coin in cached_data["coins"]]
+
+        # Ensure timezone awareness for response
+        last_updated_tz = cached_data["last_updated"]
+        next_update_tz = cached_data["next_update"]
+        if isinstance(last_updated_tz, datetime) and last_updated_tz.tzinfo is None:
+            last_updated_tz = last_updated_tz.replace(tzinfo=timezone.utc)
+        if isinstance(next_update_tz, datetime) and next_update_tz.tzinfo is None:
+            next_update_tz = next_update_tz.replace(tzinfo=timezone.utc)
+
+        return HyperliquidResponse(
+            success=True,
+            coins=coins,
+            last_updated=last_updated_tz,
+            next_update=next_update_tz,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Error fetching Hyperliquid data")
+        return HyperliquidResponse(
+            success=False,
+            coins=[],
+            last_updated=datetime.now(timezone.utc),
+            next_update=datetime.now(timezone.utc),
+            error=str(exc),
+        )
 
 
 app.include_router(api_router)
