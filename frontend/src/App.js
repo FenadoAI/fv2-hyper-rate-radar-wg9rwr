@@ -164,11 +164,11 @@ const Home = () => {
                   <tr>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-purple-200">Rank</th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-purple-200">Coin</th>
-                    <th className="px-6 py-4 text-right text-sm font-semibold text-purple-200">Annualized FR (7d)</th>
-                    <th className="px-6 py-4 text-right text-sm font-semibold text-purple-200">Current FR</th>
+                    <th className="px-6 py-4 text-right text-sm font-semibold text-purple-200">Annualized FR (7d Avg)</th>
+                    <th className="px-6 py-4 text-right text-sm font-semibold text-purple-200">Current FR (Annual)</th>
+                    <th className="px-6 py-4 text-right text-sm font-semibold text-purple-200">7d Total Earned</th>
                     <th className="px-6 py-4 text-right text-sm font-semibold text-purple-200">Open Interest</th>
                     <th className="px-6 py-4 text-right text-sm font-semibold text-purple-200">Daily Volume</th>
-                    <th className="px-6 py-4 text-right text-sm font-semibold text-purple-200">Data Points</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/10">
@@ -199,9 +199,16 @@ const Home = () => {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <span className={`font-semibold ${
-                          coin.current_funding_rate > 0 ? 'text-green-300' : 'text-red-300'
+                          coin.current_funding_rate_annualized_pct > 0 ? 'text-green-300' : 'text-red-300'
                         }`}>
-                          {formatPercentage(coin.current_funding_rate * 100)}
+                          {formatPercentage(coin.current_funding_rate_annualized_pct)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <span className={`font-semibold text-base ${
+                          coin.total_7d_funding_pct > 0 ? 'text-emerald-400' : 'text-rose-400'
+                        }`}>
+                          {formatPercentage(coin.total_7d_funding_pct)}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right text-white font-semibold">
@@ -209,9 +216,6 @@ const Home = () => {
                       </td>
                       <td className="px-6 py-4 text-right text-white font-semibold">
                         {formatNumber(coin.daily_volume_usd)}
-                      </td>
-                      <td className="px-6 py-4 text-right text-purple-200">
-                        {coin.funding_data_points}
                       </td>
                     </tr>
                   ))}
@@ -225,10 +229,11 @@ const Home = () => {
         <div className="mt-8 bg-white/5 backdrop-blur-lg rounded-xl p-6 border border-white/10">
           <h3 className="text-white font-semibold mb-3">About This Tracker</h3>
           <div className="text-purple-200 text-sm space-y-2">
-            <p>• This tracker displays the top 10 cryptocurrencies with the highest annualized funding rates (7-day average) from Hyperliquid perpetual markets.</p>
+            <p>• <strong>Annualized FR (7d Avg):</strong> Average funding rate over 7 days, annualized (rate × 3 × 365, since funding occurs every 8 hours).</p>
+            <p>• <strong>Current FR (Annual):</strong> Current funding rate in annualized format - shows what you'd earn/pay if this rate persists for a year.</p>
+            <p>• <strong>7d Total Earned:</strong> Actual cumulative funding earned/paid over the past 7 days as a percentage of position size.</p>
             <p>• Only coins with Open Interest &gt; $10M AND Daily Volume &gt; $10M are included.</p>
-            <p>• Funding rates are annualized (funding occurs every 8 hours, so rate × 3 × 365). Positive rates indicate longs paying shorts.</p>
-            <p>• Data updates automatically every hour. You can manually refresh using the button above.</p>
+            <p>• Positive rates indicate longs paying shorts (shorts earn). Data updates automatically every hour.</p>
           </div>
         </div>
       </div>

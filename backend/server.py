@@ -74,10 +74,13 @@ class HyperliquidCoin(BaseModel):
     avg_funding_rate_pct: float
     annualized_funding_rate: float
     annualized_funding_rate_pct: float
+    current_funding_rate: float
+    current_funding_rate_annualized: float
+    current_funding_rate_annualized_pct: float
+    total_7d_funding_pct: float
     open_interest_usd: float
     daily_volume_usd: float
     mark_price: float
-    current_funding_rate: float
     funding_data_points: int
 
 

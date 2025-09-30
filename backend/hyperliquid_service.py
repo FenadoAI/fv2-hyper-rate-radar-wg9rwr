@@ -141,16 +141,28 @@ class HyperliquidService:
                 annualized_funding_rate = avg_funding_rate * 3 * 365
                 annualized_funding_rate_pct = annualized_funding_rate * 100
 
+                # Current funding rate (annualized)
+                current_funding_rate = float(context.get("funding", "0"))
+                current_funding_rate_annualized = current_funding_rate * 3 * 365
+                current_funding_rate_annualized_pct = current_funding_rate_annualized * 100
+
+                # Total funding earned in last 7 days (sum of all funding rates)
+                total_7d_funding = sum(float(entry["fundingRate"]) for entry in funding_history)
+                total_7d_funding_pct = total_7d_funding * 100
+
                 eligible_coins.append({
                     "coin": coin_name,
                     "avg_funding_rate": avg_funding_rate,
                     "avg_funding_rate_pct": avg_funding_rate * 100,  # Per-period percentage
                     "annualized_funding_rate": annualized_funding_rate,
                     "annualized_funding_rate_pct": annualized_funding_rate_pct,
+                    "current_funding_rate": current_funding_rate,
+                    "current_funding_rate_annualized": current_funding_rate_annualized,
+                    "current_funding_rate_annualized_pct": current_funding_rate_annualized_pct,
+                    "total_7d_funding_pct": total_7d_funding_pct,
                     "open_interest_usd": open_interest_usd,
                     "daily_volume_usd": daily_volume_usd,
                     "mark_price": mark_price,
-                    "current_funding_rate": float(context.get("funding", "0")),
                     "funding_data_points": len(funding_history),
                 })
 

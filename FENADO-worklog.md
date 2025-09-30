@@ -1,6 +1,37 @@
 # FENADO Worklog
 
-## 2025-09-30 - Update: Annualized Funding Rate & Volume Filter
+## 2025-09-30 - Update 2: Current FR Annualized + 7-Day Total Earnings
+
+### Changes Made:
+1. **Current Funding Rate in Annualized Format:**
+   - Added `current_funding_rate_annualized` and `current_funding_rate_annualized_pct` fields
+   - Shows what you'd earn/pay if current rate persists for a year
+   - Displayed in "Current FR (Annual)" column
+
+2. **7-Day Total Funding Earned:**
+   - Added `total_7d_funding_pct` field showing cumulative funding over 7 days
+   - Calculated as sum of all funding rates in the 7-day period
+   - Shows actual earnings as % of position size
+   - Displayed in "7d Total Earned" column with emerald/rose colors
+
+3. **Table Layout Updated:**
+   - Removed "Data Points" column to make room for new columns
+   - Columns: Rank, Coin, Annualized FR (7d Avg), Current FR (Annual), 7d Total Earned, OI, Volume
+   - Updated footer explanations for all three funding metrics
+
+4. **Files Modified:**
+   - `backend/hyperliquid_service.py`: Added calculations for annualized current FR and 7d total
+   - `backend/server.py`: Added new fields to HyperliquidCoin model
+   - `frontend/src/App.js`: Updated table headers, data display, and explanations
+
+5. **Services:**
+   - Backend restarted successfully
+   - Frontend built and restarted successfully
+   - All services operational
+
+---
+
+## 2025-09-30 - Update 1: Annualized Funding Rate & Volume Filter
 
 ### Changes Made:
 1. **Annualized Funding Rate Display:**
